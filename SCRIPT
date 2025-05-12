@@ -32,7 +32,7 @@ button.TextSize = 14
 
 button.MouseButton1Click:Connect(function()
     enabled = not enabled
-    button.Text = enabled and "Aimbot: ON" or "Aimbot: OFF"
+    button.Text = enabled and "Aimbot V1 BY HAI_BROYS: ON" or "Aimbot V1 BY HAI_BROYS: OFF"
     button.BackgroundColor3 = enabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 100, 100)
     aimCircle.Visible = enabled
 end)
