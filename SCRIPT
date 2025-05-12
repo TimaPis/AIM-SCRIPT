@@ -1,152 +1,84 @@
+--// Сервисы
 local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
--- Убить всех
-local function KillAll()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			plr.Character:BreakJoints()
-		end
-	end
+--// Переменные
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse = player:GetMouse()
+local targetRadius = 150
+local enabled = false
+
+--// Прицел
+local aimCircle = Drawing.new("Circle")
+aimCircle.Visible = false
+aimCircle.Thickness = 2
+aimCircle.Color = Color3.fromRGB(255, 0, 0)
+aimCircle.Filled = false
+aimCircle.Radius = targetRadius
+aimCircle.Position = camera.ViewportSize / 2
+
+--// UI кнопка
+local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local button = Instance.new("TextButton", gui)
+button.Size = UDim2.new(0, 120, 0, 30)
+button.Position = UDim2.new(0.5, -60, 0.9, 0)
+button.Text = "Aimbot: OFF"
+button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+
+button.MouseButton1Click:Connect(function()
+    enabled = not enabled
+    button.Text = enabled and "Aimbot: ON" or "Aimbot: OFF"
+    button.BackgroundColor3 = enabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 100, 100)
+    aimCircle.Visible = enabled
+end)
+
+--// Фильтр целей
+local function isValidTarget(character)
+    if not character then return false end
+    local humanoid = character:FindFirstChild("Humanoid")
+    local head = character:FindFirstChild("Head")
+    if not humanoid or not head or humanoid.Health <= 0 then return false end
+    local plr = Players:GetPlayerFromCharacter(character)
+    return plr ~= player
 end
 
--- Включить полёт всем
-local function EnableFlight()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			local bp = Instance.new("BodyPosition", hrp)
-			bp.Position = hrp.Position + Vector3.new(0, 50, 0)
-			bp.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-		end
-	end
+--// Поиск ближайшей цели
+local function getClosestTarget()
+    local closest = nil
+    local shortestDistance = targetRadius
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and isValidTarget(p.Character) then
+            local head = p.Character:FindFirstChild("Head")
+            if head then
+                local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+                if onScreen then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - (camera.ViewportSize / 2)).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closest = head
+                    end
+                end
+            end
+        end
+    end
+    return closest
 end
 
--- Удалить все скрипты
-local function DeleteScripts()
-	for _, obj in ipairs(Workspace:GetDescendants()) do
-		if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
-			obj:Destroy()
-		end
-	end
-end
-
--- Забрать все вещи игроков
-local function RemoveTools()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		for _, tool in ipairs(plr.Backpack:GetChildren()) do
-			if tool:IsA("Tool") then
-				tool:Destroy()
-			end
-		end
-	end
-end
-
--- Изменить небо и освещение
-local function RedSky()
-	Lighting:ClearAllChildren()
-	local sky = Instance.new("Sky")
-	sky.SkyboxBk = "rbxassetid://150183540"
-	sky.SkyboxDn = "rbxassetid://150183540"
-	sky.SkyboxFt = "rbxassetid://150183540"
-	sky.SkyboxLf = "rbxassetid://150183540"
-	sky.SkyboxRt = "rbxassetid://150183540"
-	sky.SkyboxUp = "rbxassetid://150183540"
-	sky.Parent = Lighting
-	Lighting.Ambient = Color3.new(1, 0, 0)
-end
-
--- Спектатор-режим
-local function SpectateAll()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		local humanoid = plr.Character and plr.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid:Destroy()
-		end
-	end
-end
-
--- Залить всю карту лавой
-local function FloodWithLava()
-	local lava = Instance.new("Part", Workspace)
-	lava.Anchored = true
-	lava.Size = Vector3.new(1000, 50, 1000)
-	lava.Position = Vector3.new(0, 0, 0)
-	lava.BrickColor = BrickColor.new("Bright red")
-	lava.Material = Enum.Material.Neon
-	lava.Name = "LavaFlood"
-end
-
--- Телепорт всех к себе
-local function TeleportAllToMe()
-	local host = Players:GetPlayers()[1]
-	if not host or not host.Character then return end
-	local pos = host.Character:FindFirstChild("HumanoidRootPart").Position
-
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= host and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-			plr.Character.HumanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(math.random(-5,5), 0, math.random(-5,5)))
-		end
-	end
-end
-
--- Взорвать всех
-local function ExplodeEveryone()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-			local explosion = Instance.new("Explosion", Workspace)
-			explosion.Position = plr.Character.HumanoidRootPart.Position
-			explosion.BlastRadius = 10
-			explosion.BlastPressure = 500000
-		end
-	end
-end
-
--- Зациклить телепорт всех
-local TeleportLoop = false
-local function LoopTeleportAllToMe()
-	TeleportLoop = not TeleportLoop
-	task.spawn(function()
-		while TeleportLoop do
-			TeleportAllToMe()
-			wait(1)
-		end
-	end)
-end
-
--- Удалить землю
-local function RemoveBaseplate()
-	for _, part in ipairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") and part.Anchored and part.Position.Y < 5 then
-			part:Destroy()
-		end
-	end
-end
-
--- Заморозить всех
-local function FreezeAll()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			local attachment = Instance.new("Attachment", hrp)
-			local constraint = Instance.new("BallSocketConstraint", hrp)
-			constraint.Attachment0 = attachment
-			constraint.Attachment1 = attachment
-			constraint.Enabled = false
-		end
-	end
-end
-
--- Удалить одежду/аксессуары
-local function StripPlayers()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			for _, item in ipairs(plr.Character:GetChildren()) do
-				if item:IsA("Accessory") or item:IsA("Clothing") then
-					item:Destroy()
-				end
-			end
-		end
-	end
-end
+--// Обновление камеры
+RunService.RenderStepped:Connect(function()
+    aimCircle.Position = camera.ViewportSize / 2
+    aimCircle.Radius = targetRadius * (camera.ViewportSize.Y / 720)
+    
+    if enabled then
+        local target = getClosestTarget()
+        if target then
+            local direction = (target.Position - camera.CFrame.Position).Unit
+            camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + direction)
+        end
+    end
+end)
