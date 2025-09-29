@@ -2,14 +2,15 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 --// Переменные
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local camera = Workspace.CurrentCamera
 local mouse = player:GetMouse()
 local targetRadius = 150
 local enabled = false
-local smoothness = 0.15 -- чем меньше, тем плавнее (0.05 плавнее, 0.3 быстрее)
+local smoothness = 0.25 -- чем выше, тем сильнее "помощь" (0.25–0.3 оптимально)
 
 --// Прицел
 local aimCircle = Drawing.new("Circle")
@@ -48,7 +49,22 @@ local function isValidTarget(character)
     return plr ~= player
 end
 
---// Поиск ближайшей цели (в круге прицела)
+--// Проверка прямой видимости
+local function isVisible(targetPart)
+    local origin = camera.CFrame.Position
+    local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {player.Character} -- игнорируем себя
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+
+    local result = Workspace:Raycast(origin, direction, params)
+    if result then
+        return result.Instance:IsDescendantOf(targetPart.Parent) -- видно только если луч попал в самого врага
+    end
+    return false
+end
+
+--// Поиск ближайшей цели (в круге и в зоне видимости)
 local function getClosestTarget()
     local closest = nil
     local shortestDistance = targetRadius
@@ -59,7 +75,7 @@ local function getClosestTarget()
                 local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
                 if onScreen then
                     local distance = (Vector2.new(screenPos.X, screenPos.Y) - (camera.ViewportSize / 2)).Magnitude
-                    if distance < shortestDistance then
+                    if distance < shortestDistance and isVisible(head) then
                         shortestDistance = distance
                         closest = head
                     end
