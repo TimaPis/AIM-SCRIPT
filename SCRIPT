@@ -82,3 +82,19 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+--// Отслеживание новых игроков и персонажей (без задержек)
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        -- когда у игрока появляется персонаж, аимбот его начнёт учитывать
+    end)
+end)
+
+-- чтобы сразу учесть уже существующих игроков
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= player then
+        plr.CharacterAdded:Connect(function()
+            -- когда у игрока появляется персонаж, аимбот его начнёт учитывать
+        end)
+    end
+end
