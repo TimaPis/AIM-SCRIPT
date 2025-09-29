@@ -9,6 +9,7 @@ local camera = workspace.CurrentCamera
 local mouse = player:GetMouse()
 local targetRadius = 150
 local enabled = false
+local smoothness = 0.15 -- чем меньше, тем плавнее (0.05 плавнее, 0.3 быстрее)
 
 --// Прицел
 local aimCircle = Drawing.new("Circle")
@@ -22,9 +23,9 @@ aimCircle.Position = camera.ViewportSize / 2
 --// UI кнопка
 local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local button = Instance.new("TextButton", gui)
-button.Size = UDim2.new(0, 120, 0, 30)
-button.Position = UDim2.new(0.5, -60, 0.9, 0)
-button.Text = "Aimbot: OFF"
+button.Size = UDim2.new(0, 160, 0, 30)
+button.Position = UDim2.new(0.5, -80, 0.9, 0)
+button.Text = "Aimbot V1 BY HAI_BROYS: OFF"
 button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.GothamBold
@@ -47,7 +48,7 @@ local function isValidTarget(character)
     return plr ~= player
 end
 
---// Поиск ближайшей цели
+--// Поиск ближайшей цели (в круге прицела)
 local function getClosestTarget()
     local closest = nil
     local shortestDistance = targetRadius
@@ -69,7 +70,7 @@ local function getClosestTarget()
     return closest
 end
 
---// Обновление камеры
+--// Обновление камеры (плавное наведение)
 RunService.RenderStepped:Connect(function()
     aimCircle.Position = camera.ViewportSize / 2
     aimCircle.Radius = targetRadius * (camera.ViewportSize.Y / 720)
@@ -77,24 +78,19 @@ RunService.RenderStepped:Connect(function()
     if enabled then
         local target = getClosestTarget()
         if target then
-            local direction = (target.Position - camera.CFrame.Position).Unit
-            camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + direction)
+            local targetCF = CFrame.new(camera.CFrame.Position, target.Position)
+            camera.CFrame = camera.CFrame:Lerp(targetCF, smoothness) -- плавное приближение к цели
         end
     end
 end)
 
---// Отслеживание новых игроков и персонажей (без задержек)
+--// Обработка новых игроков (без задержки)
 Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        -- когда у игрока появляется персонаж, аимбот его начнёт учитывать
-    end)
+    plr.CharacterAdded:Connect(function() end)
 end)
 
--- чтобы сразу учесть уже существующих игроков
 for _, plr in ipairs(Players:GetPlayers()) do
     if plr ~= player then
-        plr.CharacterAdded:Connect(function()
-            -- когда у игрока появляется персонаж, аимбот его начнёт учитывать
-        end)
+        plr.CharacterAdded:Connect(function() end)
     end
 end
